@@ -1,0 +1,11 @@
+# Ignorar archivos .pyc generados
+*.pyc
+# Ignorar archivos __pycache__ generados por Python 3
+__pycache__/
+# Ignorar archivos .pyo generados
+*.pyo
+# Ignorar archivos .pyd generados por Cython
+*.pyd
+.idea
+venv
+.venv
