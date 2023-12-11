@@ -1,22 +1,10 @@
-from flask import Flask, render_template, Response
-from app.helpers.analize_borad import analize_board
+from flask import Flask, render_template, Response, request, jsonify
+from app.helpers.analize_board import analize_board
+from app.utils.talk import say_movement
 import cv2
-import numpy as np
-import threading
 
 app = Flask(__name__)
-cap = cv2.VideoCapture("http://192.168.20.6:4747/video")
-
-def generate_frames():
-    while True:
-        success, frame = cap.read()
-        if not success:
-            break
-        else:
-            _, buffer = cv2.imencode('.jpg', frame)
-            frame = buffer.tobytes()
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+cap = cv2.VideoCapture("http://192.168.20.17:4747/video")
 
 @app.route('/')
 def index():
@@ -24,11 +12,36 @@ def index():
 
 @app.route('/video_feed')
 def video_feed():
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(analize_board(cap), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-if __name__ == '__main__':
+@app.route('/say-movement', methods=['POST'])
+def say_movement_rest():
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
 
-    image_thread = threading.Thread(target=analize_board, args=(cap))
-    image_thread.start()
+            # Verifica si el JSON contiene la clave "mensaje"
+            if 'mensaje' in data:
+                mensaje = data['mensaje']
+                say_movement(mensaje)
+                return "OK"
+            else:
+                return jsonify({"error": "Formato JSON incorrecto. Se esperaba {'mensaje': 'texto'}"}), 400 
+        except RuntimeError:
+            return "Ya en reproducción"
+    else:
+        return "Invalid request method", 405
 
-    app.run(debug=True)
+@app.route('/get-game-state')
+def get_name_state():
+    #Retorna el estado del juego, con la matriz y la validacion de si ha cambiado o no en un json
+    return {
+        "matrix": [
+            ["", "", ""],
+            ["", "C", ""],
+            ["T", "C", ""]
+        ],
+        "changed": True
+    }
+    
+    
